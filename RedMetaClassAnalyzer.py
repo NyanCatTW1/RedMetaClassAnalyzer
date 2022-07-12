@@ -304,7 +304,7 @@ for i in range(len(metaDataTypes)):
             func = funcManager.getFunctionContaining(ptrAddr)
             if func is not None:
                 funcName = str(func)
-                funcType = FunctionDefinitionDataType(CategoryPath("/AMDGen/FuncSigns"), funcName + "_sign", func.getSignature(True))
+                funcType = FunctionDefinitionDataType(CategoryPath("/AMDGen/FuncSigns"), funcName + "_sign", func.getSignature(False))
                 typeManager.addDataType(funcType, DataTypeConflictHandler.REPLACE_HANDLER)
             else:
                 # Remove L with [:-1]
