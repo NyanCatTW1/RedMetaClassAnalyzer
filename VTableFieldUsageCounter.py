@@ -19,7 +19,7 @@ while True:
     uses[fieldName].append(inp)
 
 uses = list(uses.items())
-uses.sort(key=lambda x: (len(x[1]), x[0]), reverse=True)
+uses.sort(key=lambda x: (-len(x[1]), x[0]))
 
 tab = '\t'
 for item in uses:
