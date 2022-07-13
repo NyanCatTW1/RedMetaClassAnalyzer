@@ -1,0 +1,5 @@
+{
+    "python.linting.flake8Args": [
+        "--ignore=F821,E501"
+    ]
+}

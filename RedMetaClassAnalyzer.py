@@ -5,8 +5,6 @@
 # @menupath
 # @toolbar
 
-# Last edit: 2022-07-12 by Nyan Cat
-
 # Features (Newest at bottom)
 # Rename metaClass/vtable pointers in __got.
 # Find all references to safeMetaCast and retype variables according to the arguments fed.
@@ -304,6 +302,7 @@ for i in range(len(metaDataTypes)):
             func = funcManager.getFunctionContaining(ptrAddr)
             if func is not None:
                 funcName = str(func)
+                # print(func.getSignature(False).getPrototypeString(True))
                 funcType = FunctionDefinitionDataType(CategoryPath("/AMDGen/FuncSigns"), funcName + "_sign", func.getSignature(False))
                 typeManager.addDataType(funcType, DataTypeConflictHandler.REPLACE_HANDLER)
             else:
