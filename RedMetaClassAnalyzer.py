@@ -37,6 +37,9 @@ from ghidra.program.model.data import CategoryPath, StructureDataType, PointerDa
 # Java.
 from ghidra.program.model.data import DataTypeConflictHandler
 
+# Used to recreate FunctionDefinitionDataType from signature string
+from ghidra.program.model.data import GenericCallingConvention, ParameterDefinitionImpl
+
 verbose = False
 vtableREMode = False
 
@@ -263,8 +266,17 @@ for dataType in metaDataTypes:
         typeManager.addDataType(dataType, DataTypeConflictHandler.REPLACE_HANDLER)
 print("Set structure on {} meta structs".format(setCount))
 
+callTypes = {
+    "__stdcall": GenericCallingConvention.stdcall,
+    "__cdecl": GenericCallingConvention.cdecl,
+    "__fastcall": GenericCallingConvention.fastcall,
+    "__thiscall": GenericCallingConvention.thiscall,
+    "__vectorcall": GenericCallingConvention.vectorcall
+}
+
 knownVtables = {}
 knownVtables["OSDictionary"] = ["Unknown"] * 66
+knownVtables["OSDictionary"][58] = "__thiscall bool OSDictionary::setObject(OSDictionary* this, char* aKey, OSMetaClassBase* anObject)"
 
 print("")
 print("Creating and assigning vtable structs...")
@@ -280,11 +292,28 @@ for i in range(len(metaDataTypes)):
         funcs = knownVtables[name]
         for i in range(len(funcs)):
             curFunc = funcs[i]
-            if curFunc == "Unknown" or True:
+            if curFunc == "Unknown":
                 funcName = "field_" + str(i).zfill(3)
             else:
-                # TODO
-                pass
+                # I apologize for all the .split around here.
+                funcName = curFunc.split("(")[0].split(" ")[-1]
+                funcType = FunctionDefinitionDataType(CategoryPath("/AMDGen/FuncSigns"), funcName + "_sign")
+
+                callType = curFunc.split(" ")[0]
+                funcType.setGenericCallingConvention(callTypes[callType])
+
+                retType = curFunc.split(" ")[1]
+                funcType.setReturnType(ensureDataType(retType.replace("*", ""), typeManager, retType.count("*"), None))
+
+                paraStrs = curFunc.split("(")[1].split(")")[0].split(", ")
+                parameters = []
+                for paraStr in paraStrs:
+                    typeName, paraName = paraStr.split(" ")
+                    paraType = ensureDataType(typeName.replace("*", ""), typeManager, typeName.count("*"), None)
+                    parameters.append(ParameterDefinitionImpl(paraName, paraType, ""))
+                funcType.setArguments(parameters)
+
+                typeManager.addDataType(funcType, DataTypeConflictHandler.REPLACE_HANDLER)
             vtable.append(funcName)
     else:
         if vtableREMode:
