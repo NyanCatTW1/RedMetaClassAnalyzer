@@ -238,10 +238,9 @@ long = ensureDataType("long", typeManager, 0, None)
 longPtr = ensureDataType("long", typeManager, 1, None)
 setCount = 0
 for dataType in metaDataTypes:
-    # Don't touch data type with manual edits
-    if dataType.getLength() <= 8:
-        # Reset struct's content
-        dataType = ensureDataType(dataType.getName(), typeManager, 0, 0)
+    # Don't touch data type with content
+    if dataType.isZeroLength():
+        dataType = ensureDataType(dataType.getName(), typeManager, 0, None)
 
         # print("    Appending long * in {}".format(dataType.getName()))
         setCount += 1
