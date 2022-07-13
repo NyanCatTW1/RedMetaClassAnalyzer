@@ -23,6 +23,6 @@ uses.sort(key=lambda x: (len(x[1]), x[0]), reverse=True)
 
 tab = '\t'
 for item in uses:
-    print(f"#### {item[0]} ({len(item[1])})")
+    print(f"### {item[0]} ({len(item[1])})")
     for use in item[1]:
         print(f"`{use.replace(tab, '  ')}`")
