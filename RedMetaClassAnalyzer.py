@@ -38,7 +38,7 @@ from ghidra.program.model.data import CategoryPath, StructureDataType, PointerDa
 from ghidra.program.model.data import DataTypeConflictHandler
 
 verbose = False
-predefinedVtableOnly = False
+vtableREMode = False
 
 
 def makeByteArr(length):
@@ -173,7 +173,7 @@ ifc.setOptions(options)
 ifc.openProgram(func.getProgram())
 
 while True:
-    if predefinedVtableOnly:
+    if vtableREMode:
         print("Skipping variable retype")
         break
 
@@ -287,7 +287,7 @@ for i in range(len(metaDataTypes)):
                 pass
             vtable.append(funcName)
     else:
-        if predefinedVtableOnly:
+        if vtableREMode:
             print("    Skipping {}".format(name))
             continue
         vtableAddr = None
