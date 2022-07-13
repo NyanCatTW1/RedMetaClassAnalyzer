@@ -176,6 +176,7 @@ ifc = DecompInterface()
 ifc.setOptions(options)
 ifc.openProgram(func.getProgram())
 
+retypeCounts = []
 for iter in range(25):
     if vtableREMode:
         print("Skipping variable retype")
@@ -223,7 +224,8 @@ for iter in range(25):
                 # print("Warning: Error processing code")
                 # print(" " * 4 + castRef.strip())
     print("Retyped {} variables".format(retypeCount))
-    if retypeCount == 0:
+    retypeCounts.append(retypeCount)
+    if retypeCount == 0 or sum(retypeCounts[-5:]) <= 5:
         break
 
 print("")
