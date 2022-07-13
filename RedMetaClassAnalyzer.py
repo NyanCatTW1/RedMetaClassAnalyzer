@@ -39,6 +39,8 @@ from ghidra.util.datastruct import ListAccumulator
 from ghidra.app.services import FieldMatcher
 from ghidra.program.model.data import DataTypeConflictHandler
 
+verbose = False
+
 
 def makeByteArr(length):
     return array.array('b', b'\x00' * length)
@@ -88,25 +90,24 @@ def ensureDataType(typeName, typeManager, ptrLevel, forceStructSize):
         if not isinstance(ret, StructureDataType):
             return ret
 
-        targetLen = max(8, ret.getLength())
-
-        if forceStructSize is not None:
-            targetLen = forceStructSize
-        if ptrLevel == 0 and ret.getLength() != targetLen:
-            print("    Resizing {}/{} from {} bytes to {} bytes".format(ret.getCategoryPath(), ret.getName(), ret.getLength(), targetLen))
-            ret.replaceWith(StructureDataType(ret.getCategoryPath(), ret.getName(), targetLen))
+        if ptrLevel == 0 and forceStructSize is not None and ret.getLength() != forceStructSize:
+            if verbose:
+                print("    Resizing {}/{} from {} bytes to {} bytes".format(ret.getCategoryPath(), ret.getName(), ret.getLength(), forceStructSize))
+            ret.replaceWith(StructureDataType(ret.getCategoryPath(), ret.getName(), forceStructSize))
         return ret
 
     # Create our own data type
     if ptrLevel == 0:
-        targetLen = forceStructSize if forceStructSize is not None else 8
-        # print("Creating {}-bytes struct data type {}".format(targetLen, typeName))
+        targetLen = forceStructSize if forceStructSize is not None else 0
+        if verbose:
+            print("Creating {}-bytes struct data type {}".format(targetLen, typeName))
         ret = StructureDataType(CategoryPath("/AMDGen/Structs"), typeName, targetLen, typeManager)
     else:
         prevType = ensureDataType(typeName, typeManager, ptrLevel - 1, forceStructSize)
-        # print("Creating pointer data type " + makePtrTypeName(typeName, ptrLevel))
+        if verbose:
+            print("Creating pointer data type " + makePtrTypeName(typeName, ptrLevel))
         ret = PointerDataType(prevType, typeManager)
-    typeManager.addDataType(ret, DataTypeConflictHandler.REPLACE_HANDLER)
+    ret = typeManager.addDataType(ret, DataTypeConflictHandler.REPLACE_HANDLER)
 
     return ret
 
@@ -171,46 +172,51 @@ ifc = DecompInterface()
 ifc.setOptions(options)
 ifc.openProgram(func.getProgram())
 
-retypeCount = 0
-for func in todoFuncs:
-    results = ifc.decompileFunction(func, 0, monitor)
-    code = results.getDecompiledFunction().getC().split('\n')
+while True:
+    retypeCount = 0
+    for func in todoFuncs:
+        results = ifc.decompileFunction(func, 0, monitor)
+        code = results.getDecompiledFunction().getC().split('\n')
 
-    funcName = [x for x in code if "::" in x][0][3:-3]
-    # print("Processing {}:".format(funcName))
-    castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
-    for castRef in castRefs:
-        try:
-            symbolMap = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()
-            parts = castRef.strip().split(" = ")
-            assert len(parts) == 2 and not any(x in parts[0] for x in "()&! ")
-            varName = parts[0]
-            className = parts[1].split(")")[-2].strip()
+        funcName = [x for x in code if "::" in x][0][3:-3]
+        if verbose:
+            print("Processing {}:".format(funcName))
+        castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
+        for castRef in castRefs:
+            try:
+                symbolMap = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()
+                parts = castRef.strip().split(" = ")
+                assert len(parts) == 2 and not any(x in parts[0] for x in "()&! ")
+                varName = parts[0]
+                className = parts[1].split(")")[-2].strip()
 
-            if className.endswith("__metaClass"):
-                className = className[:-len("__metaClass")]
-            elif "::" in className:
-                # [1:] to remove &
-                className = className.split("::")[0][1:]
-            elif className == "&gMetaClass":
-                # Class of "this"
-                className = funcName.split("::")[0]
-            else:
-                raise AssertionError
+                if className.endswith("__metaClass"):
+                    className = className[:-len("__metaClass")]
+                elif "::" in className:
+                    # [1:] to remove &
+                    className = className.split("::")[0][1:]
+                elif className == "&gMetaClass":
+                    # Class of "this"
+                    className = funcName.split("::")[0]
+                else:
+                    raise AssertionError
 
-            metaTypeNames.add(className)
-            varSymbol = symbolMap[str(varName)]
-            dataType = ensureDataType(className, typeManager, 2, None)
+                metaTypeNames.add(className)
+                varSymbol = symbolMap[str(varName)]
+                dataType = ensureDataType(className, typeManager, 1, None)
 
-            # Here goes nothing...
-            # print("    Retyping {} to {}".format(varName, makePtrTypeName(className, 2)))
-            if varSymbol.getDataType() != dataType:
-                retypeCount += 1
-                HighFunctionDBUtil.updateDBVariable(varSymbol, None, dataType, SourceType.USER_DEFINED)
-        except AssertionError:
-            print("Warning: Error processing code")
-            print(" " * 4 + castRef.strip())
-print("Retyped {} variables".format(retypeCount))
+                if varSymbol.getDataType() != dataType:
+                    if verbose:
+                        print("    Retyping {} from {} to {}".format(varName, varSymbol.getDataType().getName(), makePtrTypeName(className, 1)))
+                    retypeCount += 1
+                    # Here goes nothing...
+                    HighFunctionDBUtil.updateDBVariable(varSymbol, None, dataType, SourceType.USER_DEFINED)
+            except AssertionError:
+                print("Warning: Error processing code")
+                print(" " * 4 + castRef.strip())
+    print("Retyped {} variables".format(retypeCount))
+    if retypeCount == 0:
+        break
 
 print("")
 print("Setting up meta struct basic structure...")
@@ -235,11 +241,11 @@ long = ensureDataType("long", typeManager, 0, None)
 longPtr = ensureDataType("long", typeManager, 1, None)
 setCount = 0
 for dataType in metaDataTypes:
-    if dataType.getLength() == 8:
+    # Don't touch data type with manual edits
+    if dataType.getLength() <= 8:
         # Reset struct's content
         dataType = ensureDataType(dataType.getName(), typeManager, 0, 0)
 
-    if dataType.getLength() <= 8:
         # print("    Appending long * in {}".format(dataType.getName()))
         setCount += 1
         dataType.add(longPtr, 8, "vtable", "Generated by RedMetaClassAnalyzer.py")
@@ -264,18 +270,21 @@ for i in range(len(metaDataTypes)):
     print("{}/{}:".format(i + 1, len(metaDataTypes)))
     dataType = metaDataTypes[i]
     name = dataType.getName()
-    accu = ListAccumulator()
-    ReferenceUtils.findDataTypeFieldReferences(accu, FieldMatcher(dataType, "vtable"), currentProgram, True, monitor)
-    vtableAddr = None
-
-    if accu.size() == 0:
-        print("    No reference to " + name)
-        continue
 
     if name in knownVtable.keys():
         print("    Using predefined vtable for {}".format(name))
         vtable = knownVtable[name]
     else:
+        accu = ListAccumulator()
+        print("    Finding references to {}...".format(name))
+        ReferenceUtils.findDataTypeFieldReferences(accu, FieldMatcher(dataType, "vtable"), currentProgram, True, monitor)
+
+        if accu.size() == 0:
+            print("    No reference to " + name)
+            continue
+
+        print("    Analyzing {} references...".format(accu.size()))
+        vtableAddr = None
         for ref in accu:
             code = ref.getContext().getPlainText()
             if code.split(": ")[1].startswith("this->vtable = ") and "&PTR_~{}_".format(name) in code:
@@ -292,6 +301,7 @@ for i in range(len(metaDataTypes)):
             print("    Warning: Failed to find vtable for {}".format(name))
             continue
 
+        print("    Analyzing {} vtable at {}...".format(name, vtableAddr))
         vtable = []
         addr = vtableAddr
         while True:
@@ -312,8 +322,7 @@ for i in range(len(metaDataTypes)):
             vtable.append(funcName)
             addr = addr.add(8)
 
-        print("    Found {} vtable at {} with {} entries".format(name, vtableAddr, len(vtable)))
-
+    print("    Creating {}_vtableStruct with {} entries...".format(name, len(vtable)))
     vtableStruct = ensureDataType(name + "_vtableStruct", typeManager, 0, 0)
     for funcName in vtable:
         if funcName.startswith("field_0x"):
