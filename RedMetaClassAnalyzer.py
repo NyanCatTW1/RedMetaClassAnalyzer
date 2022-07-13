@@ -223,13 +223,13 @@ print("Found {} data types directly under /Demangler".format(len(dataTypes)))
 metaDataTypes = []
 for dataType in dataTypes:
     name = dataType.getName()
-    if demanglerPath.getCategory(name) is not None or name in metaTypeNames:
+    if "*" not in name and (demanglerPath.getCategory(name) is not None or name in metaTypeNames):
         metaDataTypes.append(dataType)
 
 newStructs = typeManager.getCategory(CategoryPath("/AMDGen/Structs"))
 if newStructs is not None:
     for dataType in newStructs.getDataTypes():
-        if "*" not in dataType.getName():
+        if "*" not in dataType.getName() and "_vtableStruct" not in dataType.getName():
             metaDataTypes.append(dataType)
 
 print("Found {} meta structs".format(len(metaDataTypes)))
