@@ -335,7 +335,7 @@ for dataType in dataTypes:
     if "*" not in name and (demanglerPath.getCategory(name) is not None or name in metaTypeNames):
         metaDataTypes.append(dataType)
 
-blacklist = ["mach_timespec", "longlong"]
+blacklist = ["mach_timespec", "longlong", "IOPCIAddressSpace", "IOACPIAddress"]
 newStructs = typeManager.getCategory(CategoryPath("/AMDGen/Structs"))
 if newStructs is not None:
     for dataType in newStructs.getDataTypes():
