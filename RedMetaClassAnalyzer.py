@@ -286,13 +286,15 @@ else:
                     parts = castRef.strip().split(" = ")
                     assert len(parts) == 2 and not any(x in parts[0] for x in "()&! ")
                     varName = parts[0]
-                    className = parts[1].split(")")[-2].strip()
+                    try:
+                        className = parts[1].split("safeMetaCast(")[-1].split(")")[-2].strip()
+                    except IndexError:
+                        raise AssertionError
 
                     if className.endswith("__metaClass"):
                         className = className[:-len("__metaClass")]
                     elif "::" in className:
-                        # [1:] to remove &
-                        className = className.split("::")[0][1:]
+                        className = className.split("::")[0].replace("&", "")
                     elif className == "&gMetaClass":
                         # Class of "this"
                         className = funcName.split("::")[0]
@@ -333,7 +335,7 @@ for dataType in dataTypes:
     if "*" not in name and (demanglerPath.getCategory(name) is not None or name in metaTypeNames):
         metaDataTypes.append(dataType)
 
-blacklist = ["mach_timespec"]
+blacklist = ["mach_timespec", "longlong"]
 newStructs = typeManager.getCategory(CategoryPath("/AMDGen/Structs"))
 if newStructs is not None:
     for dataType in newStructs.getDataTypes():
