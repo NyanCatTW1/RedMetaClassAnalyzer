@@ -278,7 +278,6 @@ for iter in range(25):
         castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
         for castRef in castRefs:
             try:
-                symbolMap = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()
                 parts = castRef.strip().split(" = ")
                 assert len(parts) == 2 and not any(x in parts[0] for x in "()&! ")
                 varName = parts[0]
@@ -296,7 +295,11 @@ for iter in range(25):
                     raise AssertionError
 
                 metaTypeNames.add(className)
-                varSymbol = symbolMap[str(varName)]
+
+                try:
+                    varSymbol = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()[str(varName)]
+                except KeyError:
+                    raise AssertionError
                 dataType = ensureDataType(className, typeManager, 1, None)
 
                 if varSymbol.getDataType() != dataType:
