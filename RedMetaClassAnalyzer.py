@@ -249,7 +249,7 @@ print("Found {} references to safeMetaCast".format(len(refs)))
 todoFuncs = []
 for xref in refs:
     func = funcManager.getFunctionContaining(xref.getFromAddress())
-    if func not in todoFuncs:
+    if func is not None and func not in todoFuncs:
         todoFuncs.append(func)
 
 print("Found {} functions that uses safeMetaCast".format(len(todoFuncs)))
@@ -325,10 +325,12 @@ for dataType in dataTypes:
     if "*" not in name and (demanglerPath.getCategory(name) is not None or name in metaTypeNames):
         metaDataTypes.append(dataType)
 
+blacklist = ["mach_timespec"]
 newStructs = typeManager.getCategory(CategoryPath("/AMDGen/Structs"))
 if newStructs is not None:
     for dataType in newStructs.getDataTypes():
-        if "*" not in dataType.getName() and "_vtableStruct" not in dataType.getName():
+        name = dataType.getName()
+        if "*" not in name and "_vtableStruct" not in name and not name.startswith("FuncDef") and name not in blacklist:
             metaDataTypes.append(dataType)
 
 print("Found {} meta structs".format(len(metaDataTypes)))
