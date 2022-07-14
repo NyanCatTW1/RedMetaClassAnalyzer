@@ -473,7 +473,7 @@ for i in range(len(metaDataTypes)):
         print("    Warning: Failed to find vtable for {}".format(name))
         continue
 
-    print("    Creating {}_vtableStruct with {} entries...".format(name, len(vtable)))
+    print("    Creating {}_vtableStruct with {} entries...".format(name, vtable["length"]))
     vtableStruct = ensureDataType(name + "_vtableStruct", typeManager, 0, 0)
     vtableStruct.deleteAll()
     for i in range(vtable["length"]):
