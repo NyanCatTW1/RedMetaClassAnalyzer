@@ -369,19 +369,6 @@ callTypes = {
 invCallTypes = {v: k for k, v in callTypes.items()}
 invCallTypes[GenericCallingConvention.unknown] = "__stdcall"
 
-"""
-# 1. The spacing must be exactly like the examples.
-# 2. * must stick to the type name.
-vtableDB = {}
-vtableDB["OSDictionary"] = {"length": 66}
-vtableDB["OSDictionary"][5] = "__thiscall void OSObject::release(OSDictionary* this)"
-vtableDB["OSDictionary"][58] = "__thiscall bool OSDictionary::setObject(OSDictionary* this, char* aKey, OSMetaClassBase* anObject)"
-vtableDB["OSDictionary"][63] = "__thiscall OSObject* OSDictionary::getObject(OSDictionary* this, OSSymbol* aKey)"
-vtableDB["OSDictionary"][65] = "__thiscall OSObject* OSDictionary::getObject(OSDictionary* this, char* aKey)"
-vtableDB["OSData"] = {"length": 48}
-vtableDB["IOService"] = {"length": 288}
-"""
-
 vtableDB = json.load(open("vtableDB.json"))
 
 print("")
