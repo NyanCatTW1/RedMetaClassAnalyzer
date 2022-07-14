@@ -276,8 +276,11 @@ else:
         print("Running pass {}/{}".format(iter + 1, 25))
         retypeCount = 0
         for func in todoFuncs:
-            results = ifc.decompileFunction(func, 0, monitor)
-            code = results.getDecompiledFunction().getC().split('\n')
+            try:
+                results = ifc.decompileFunction(func, 0, monitor)
+                code = results.getDecompiledFunction().getC().split('\n')
+            except AttributeError:
+                raise AssertionError
 
             funcName = [x for x in code if "::" in x][0][3:-3]
             castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
