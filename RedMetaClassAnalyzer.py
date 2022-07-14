@@ -319,7 +319,7 @@ else:
                     # print(" " * 4 + castRef.strip())
         print("Retyped {} variables".format(retypeCount))
         retypeCounts.append(retypeCount)
-        if retypeCount == 0 or sum(retypeCounts[-5:]) <= 5:
+        if retypeCount == 0 or sum(retypeCounts[-5:]) == retypeCounts[-1] * 5:
             break
 
 print("")
