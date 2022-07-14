@@ -280,7 +280,7 @@ else:
                 results = ifc.decompileFunction(func, 0, monitor)
                 code = results.getDecompiledFunction().getC().split('\n')
             except AttributeError:
-                raise AssertionError
+                continue
 
             funcName = [x for x in code if "::" in x][0][3:-3]
             castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
