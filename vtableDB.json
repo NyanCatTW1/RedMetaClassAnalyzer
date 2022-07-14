@@ -10753,7 +10753,7 @@
         "058": "__stdcall undefined OSArray::replaceObject(uint param_1, OSMetaClassBase* param_2)", 
         "059": "__stdcall undefined OSArray::removeObject(uint param_1)", 
         "060": "__stdcall undefined OSArray::isEqualTo(OSArray* param_1)", 
-        "061": "__stdcall undefined OSArray::getObject(uint param_1)", 
+        "061": "__thiscall undefined OSArray::getObject(OSArray* this, uint param_1)", 
         "062": "__stdcall undefined OSArray::getLastObject(void)", 
         "063": "__stdcall undefined OSArray::getNextIndexOfObject(OSMetaClassBase* param_1, uint param_2)", 
         "064": "__stdcall undefined OSArray::_RESERVEDOSArray0(void)", 
