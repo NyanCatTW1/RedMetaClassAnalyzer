@@ -236,86 +236,91 @@ while True:
     addr = addr.add(8)
 print("Renamed {} symbols".format(renameCount))
 
-print("")
-print("Retyping variables that uses OSMetaClassBase::safeMetaCast...")
-for func in funcManager.getFunctions(True):
-    if "safeMetaCast" in func.getName():
-        metaCast = func
-        break
-print("Found safeMetaCast at {}".format(metaCast.getEntryPoint()))
-
-refs = getReferencesTo(metaCast.getEntryPoint())
-print("Found {} references to safeMetaCast".format(len(refs)))
-todoFuncs = []
-for xref in refs:
-    func = funcManager.getFunctionContaining(xref.getFromAddress())
-    if func is not None and func not in todoFuncs:
-        todoFuncs.append(func)
-
-print("Found {} functions that uses safeMetaCast".format(len(todoFuncs)))
-
 options = DecompileOptions()
 # Prevent line wrapping
 options.setMaxWidth(10000)
 monitor = ConsoleTaskMonitor()
 ifc = DecompInterface()
 ifc.setOptions(options)
-ifc.openProgram(func.getProgram())
+ifc.openProgram(currentProgram)
 
-retypeCounts = []
-for iter in range(25):
-    if vtableREMode:
-        print("Skipping variable retype")
+print("")
+print("Retyping variables that uses OSMetaClassBase::safeMetaCast...")
+metaCast = None
+for func in funcManager.getFunctions(True):
+    if "safeMetaCast" in func.getName():
+        metaCast = func
         break
 
-    print("Running pass {}/{}".format(iter + 1, 25))
-    retypeCount = 0
-    for func in todoFuncs:
-        results = ifc.decompileFunction(func, 0, monitor)
-        code = results.getDecompiledFunction().getC().split('\n')
+if metaCast is None:
+    print("Warning: safeMetaCast not found, skipping variable retype")
+else:
+    print("Found safeMetaCast at {}".format(metaCast.getEntryPoint()))
 
-        funcName = [x for x in code if "::" in x][0][3:-3]
-        castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
-        for castRef in castRefs:
-            try:
-                parts = castRef.strip().split(" = ")
-                assert len(parts) == 2 and not any(x in parts[0] for x in "()&! ")
-                varName = parts[0]
-                className = parts[1].split(")")[-2].strip()
+    refs = getReferencesTo(metaCast.getEntryPoint())
+    print("Found {} references to safeMetaCast".format(len(refs)))
+    todoFuncs = []
+    for xref in refs:
+        func = funcManager.getFunctionContaining(xref.getFromAddress())
+        if func is not None and func not in todoFuncs:
+            todoFuncs.append(func)
 
-                if className.endswith("__metaClass"):
-                    className = className[:-len("__metaClass")]
-                elif "::" in className:
-                    # [1:] to remove &
-                    className = className.split("::")[0][1:]
-                elif className == "&gMetaClass":
-                    # Class of "this"
-                    className = funcName.split("::")[0]
-                else:
-                    raise AssertionError
+    print("Found {} functions that uses safeMetaCast".format(len(todoFuncs)))
 
-                metaTypeNames.add(className)
+    retypeCounts = []
+    for iter in range(25):
+        if vtableREMode:
+            print("Skipping variable retype")
+            break
 
+        print("Running pass {}/{}".format(iter + 1, 25))
+        retypeCount = 0
+        for func in todoFuncs:
+            results = ifc.decompileFunction(func, 0, monitor)
+            code = results.getDecompiledFunction().getC().split('\n')
+
+            funcName = [x for x in code if "::" in x][0][3:-3]
+            castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
+            for castRef in castRefs:
                 try:
-                    varSymbol = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()[str(varName)]
-                except KeyError:
-                    raise AssertionError
-                dataType = ensureDataType(className, typeManager, 1, None)
+                    parts = castRef.strip().split(" = ")
+                    assert len(parts) == 2 and not any(x in parts[0] for x in "()&! ")
+                    varName = parts[0]
+                    className = parts[1].split(")")[-2].strip()
 
-                if varSymbol.getDataType() != dataType:
-                    if verbose:
-                        print("    Retyping {} from {} to {} in {}".format(varName, varSymbol.getDataType().getName(), makePtrTypeName(className, 1), funcName))
-                    retypeCount += 1
-                    # Here goes nothing...
-                    HighFunctionDBUtil.updateDBVariable(varSymbol, None, dataType, SourceType.ANALYSIS)
-            except AssertionError:
-                pass
-                # print("Warning: Error processing code")
-                # print(" " * 4 + castRef.strip())
-    print("Retyped {} variables".format(retypeCount))
-    retypeCounts.append(retypeCount)
-    if retypeCount == 0 or sum(retypeCounts[-5:]) <= 5:
-        break
+                    if className.endswith("__metaClass"):
+                        className = className[:-len("__metaClass")]
+                    elif "::" in className:
+                        # [1:] to remove &
+                        className = className.split("::")[0][1:]
+                    elif className == "&gMetaClass":
+                        # Class of "this"
+                        className = funcName.split("::")[0]
+                    else:
+                        raise AssertionError
+
+                    metaTypeNames.add(className)
+
+                    try:
+                        varSymbol = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()[str(varName)]
+                    except KeyError:
+                        raise AssertionError
+                    dataType = ensureDataType(className, typeManager, 1, None)
+
+                    if varSymbol.getDataType() != dataType:
+                        if verbose:
+                            print("    Retyping {} from {} to {} in {}".format(varName, varSymbol.getDataType().getName(), makePtrTypeName(className, 1), funcName))
+                        retypeCount += 1
+                        # Here goes nothing...
+                        HighFunctionDBUtil.updateDBVariable(varSymbol, None, dataType, SourceType.ANALYSIS)
+                except AssertionError:
+                    pass
+                    # print("Warning: Error processing code")
+                    # print(" " * 4 + castRef.strip())
+        print("Retyped {} variables".format(retypeCount))
+        retypeCounts.append(retypeCount)
+        if retypeCount == 0 or sum(retypeCounts[-5:]) <= 5:
+            break
 
 print("")
 print("Setting up meta struct basic structure...")
