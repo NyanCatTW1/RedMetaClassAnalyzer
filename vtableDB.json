@@ -3913,6 +3913,16 @@
         "039": "__thiscall undefined AtiAsicInit_V2_1::asicInit(AtiAsicInit_V2_1* this, uint param_1, uint param_2)", 
         "length": 40
     }, 
+    "AtiAtomBiosParserService": {
+        "000": "__thiscall undefined AtiAtomBiosParserService::~AtiAtomBiosParserService(AtiAtomBiosParserService* this)", 
+        "001": "__thiscall undefined AtiAtomBiosParserService::~AtiAtomBiosParserService(AtiAtomBiosParserService* this)", 
+        "002": "__thiscall undefined AtiAtomBiosParserService::getBiosImage(AtiAtomBiosParserService* this)", 
+        "003": "__thiscall undefined AtiAtomBiosParserService::getBiosCommandTableRevision(AtiAtomBiosParserService* this, uint param_1, CmdTableRevision* param_2)", 
+        "004": "__thiscall undefined AtiAtomBiosParserService::getBiosCommandTableInformation(AtiAtomBiosParserService* this, CmdTableInfo* param_1)", 
+        "005": "__thiscall ulong AtiAtomBiosParserService::executeBiosCommandTable(AtiAtomBiosParserService* this, uint cmd, void* param_2, uint param_3)", 
+        "006": "__thiscall undefined AtiAtomBiosParserService::stringifyBiosCommandTableIndex(AtiAtomBiosParserService* this, ushort param_1)", 
+        "length": 7
+    }, 
     "AtiAtomFirmwareInterface": {
         "000": "__thiscall undefined AtiAtomFirmwareInterface::~AtiAtomFirmwareInterface(AtiAtomFirmwareInterface* this)", 
         "001": "__thiscall undefined AtiAtomFirmwareInterface::~AtiAtomFirmwareInterface(AtiAtomFirmwareInterface* this)", 

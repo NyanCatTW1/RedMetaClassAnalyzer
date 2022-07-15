@@ -169,29 +169,26 @@ def askVtablePreference(title, dbStr, progStr):
     if classVtablePreference is not None:
         return classVtablePreference
 
-    options = ["Always use DB", "Use DB in this meta class", "Use DB just for this conflict",
-               "Always use Prog", "Use Prog in this meta class", "Use Prog just for this conflict"]
+    modes = ["Prog and update DB", "Prog but don't update DB", "DB and update Prog"]
+    optionTemplates = ["Always use {}", "Use {} in this meta class", "Use {} just for this conflict"]
+
+    options = []
+    for mode in modes:
+        for template in optionTemplates:
+            options.append(template.format(mode))
 
     choice = options.index(askChoice(title,
                                      "Which one should I use? (See console for details)",
                                      options, None))
 
-    if choice == 0:
-        globalVtablePreference = "DB"
+    if choice % 3 == 0:
+        globalVtablePreference = modes[choice // 3]
         return globalVtablePreference
-    elif choice == 1:
-        classVtablePreference = "DB"
+    elif choice % 3 == 1:
+        classVtablePreference = modes[choice // 3]
         return classVtablePreference
-    elif choice == 2:
-        return "DB"
-    elif choice == 3:
-        globalVtablePreference = "Prog"
-        return globalVtablePreference
-    elif choice == 4:
-        classVtablePreference = "Prog"
-        return classVtablePreference
-    elif choice == 5:
-        return "Prog"
+    elif choice % 3 == 2:
+        return modes[choice // 3]
 
 
 globalVtablePreference = None
@@ -442,11 +439,13 @@ for i in range(len(metaDataTypes)):
                 if vtableDB[name].get(DBIndex(i), funcStr) != funcStr:
                     title = "Merge conflict on {} field_{}".format(name, DBIndex(i))
                     prefer = askVtablePreference(title, vtableDB[name][DBIndex(i)], funcStr)
-                    print("        Using {} and updating another".format(prefer))
+                    print("        About to use {}".format(prefer))
 
-                    if prefer == "Prog":
+                    if prefer == "Prog and update DB":
                         vtableDB[name][DBIndex(i)] = funcStr
-                    elif prefer == "DB":
+                    elif prefer == "Prog but don't update DB":
+                        pass
+                    elif prefer == "DB and update Prog":
                         funcStr = vtableDB[name][DBIndex(i)]
                         funcName = funcStr.split("(")[0].split(" ")[-1]
                         funcSign = strToFunc(funcStr)
@@ -464,7 +463,8 @@ for i in range(len(metaDataTypes)):
                     else:
                         # If this happens I made a typo lol
                         raise AssertionError
-                vtableDB[name][DBIndex(i)] = funcStr
+                else:
+                    vtableDB[name][DBIndex(i)] = funcStr
                 vtable[i] = funcName
 
                 funcType = FunctionDefinitionDataType(CategoryPath("/AMDGen/FuncSigns"), funcName + "_sign", funcSign)
