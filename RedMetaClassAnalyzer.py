@@ -47,7 +47,8 @@ from ghidra.program.model.listing import ParameterImpl
 from ghidra.program.model.listing.Function import FunctionUpdateType
 
 verbose = False
-vtableREMode = False
+# If importVtables is not empty, then *only* meta classes in the list will have their vtable processed
+importVtables = []
 overrideMetaStructs = False
 
 
@@ -212,7 +213,7 @@ print("Renaming pointers in __got...")
 got = mem.getBlock("__got")
 print("Found __got at {}~{}".format(got.getStart(), got.getEnd()))
 
-metaTypeNames = set()
+metaTypeNames = set(["IOWorkLoop"])
 
 addr = got.getStart()
 renameCount = 0
@@ -269,7 +270,7 @@ else:
 
     retypeCounts = []
     for iter in range(25):
-        if vtableREMode:
+        if len(importVtables) != 0:
             print("Skipping variable retype")
             break
 
@@ -393,6 +394,10 @@ for i in range(len(metaDataTypes)):
     print("{}/{}:".format(i + 1, len(metaDataTypes)))
     dataType = metaDataTypes[i]
     name = dataType.getName()
+
+    if len(importVtables) != 0 and name not in importVtables:
+        print("    Skipping " + name)
+        continue
 
     vtable = {}
     classVtablePreference = None
