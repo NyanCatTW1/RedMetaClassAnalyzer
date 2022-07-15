@@ -213,7 +213,7 @@ print("Renaming pointers in __got...")
 got = mem.getBlock("__got")
 print("Found __got at {}~{}".format(got.getStart(), got.getEnd()))
 
-metaTypeNames = set(["IOWorkLoop"])
+metaTypeNames = set(importVtables)
 
 addr = got.getStart()
 renameCount = 0
