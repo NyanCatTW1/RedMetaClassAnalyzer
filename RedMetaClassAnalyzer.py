@@ -336,7 +336,7 @@ print("Found {} data types directly under /Demangler".format(len(dataTypes)))
 metaDataTypes = []
 for dataType in dataTypes:
     name = dataType.getName()
-    if "*" not in name and (demanglerPath.getCategory(name) is not None or name in metaTypeNames):
+    if "*" not in name and ("_t" not in name or name in metaTypeNames):
         metaDataTypes.append(dataType)
 
 blacklist = ["mach_timespec", "longlong", "IOPCIAddressSpace", "IOACPIAddress"]
