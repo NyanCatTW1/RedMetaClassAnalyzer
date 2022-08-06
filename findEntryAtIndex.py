@@ -20,3 +20,4 @@ sorter = sorted([(len(x[1]), x[0]) for x in matches.items()], reverse=True)
 for count, func in sorter:
     print(f"{func} with {count} matches:")
     print("  " + "\n  ".join(matches[func]))
+    print()

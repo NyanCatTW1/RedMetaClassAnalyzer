@@ -29,9 +29,12 @@ def getDataType(typeName, typeManager):
     return matches[0]
 
 
+typeName = "PP_Instance"
+varName = "ppInstance"
+
 funcManager = currentProgram.getFunctionManager()
 typeManager = currentProgram.getDataTypeManager()
-cailData = getDataType("CAILData", typeManager)
+cailData = getDataType(typeName, typeManager)
 
 while True:
     print("Finding references...")
@@ -53,7 +56,7 @@ while True:
     print("Found {} functions".format(len(funcs)))
 
     count = 0
-    cailDataPtr = getDataType("CAILData *", typeManager)
+    cailDataPtr = getDataType(typeName + " *", typeManager)
     for func in funcManager.getFunctions(True):
         if func.getName() not in funcs:
             continue
@@ -67,7 +70,7 @@ while True:
         if i == len(paras):
             continue
 
-        paras[i] = ParameterImpl("cailData", cailDataPtr, currentProgram)
+        paras[i] = ParameterImpl(varName, cailDataPtr, currentProgram)
 
         # A hack to convert Python List to Java ArrayList
         jParas = ArrayList()
