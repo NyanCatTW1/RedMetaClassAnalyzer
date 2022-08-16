@@ -1,4 +1,4 @@
-# A helper script to populate vtable in _MCIL_SERVICE_CALLBACKS
+# A helper script to populate vtable in _MCIL_SERVICE_CALLBACKS of AtiAppleMcilServices
 # @author Nyan Cat
 # @category A_Red
 # @keybinding
