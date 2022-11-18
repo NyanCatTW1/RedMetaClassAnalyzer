@@ -29,8 +29,8 @@ def getDataType(typeName, typeManager):
     return matches[0]
 
 
-typeName = "PP_Instance"
-varName = "ppInstance"
+typeName = "CAILData"
+varName = "cailData"
 
 funcManager = currentProgram.getFunctionManager()
 typeManager = currentProgram.getDataTypeManager()

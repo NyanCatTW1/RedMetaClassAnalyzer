@@ -22,7 +22,7 @@ def getFuncName(func):
 
 
 if len(sys.argv) < 3:
-    print(f"Usage: {sys.argv[0]} typeA typeB")
+    print(f"Usage: {sys.argv[0]} (Old type) (New type)")
     sys.exit()
 
 db = json.load(open("vtableDB.json"))
@@ -45,7 +45,7 @@ for key in keys:
 
     aNoVer[key] = removeVersion(A)
     bNoVer[removeVersion(B)] = key
-    if removeVersion(A) != removeVersion(B):
+    if removeVersion(A) != removeVersion(B) or False:
         offset = hex(int(key) * 8)
         misaligns.append("field_" + offset)
         print(f"{key} ({offset.ljust(5)}): {getFuncName(A).ljust(80)}  {getFuncName(B)}")
@@ -56,6 +56,10 @@ while True:
     line = input().strip()
     if line == "":
         break
+
+    if "vtable->field" not in line:
+        continue
+
     if any(x in line for x in misaligns):
         addr = line.split("\t")[0]
         offset = line.split("field_")[-1].split(")")[0]
@@ -63,9 +67,11 @@ while True:
 
         try:
             fixed = bNoVer[aNoVer[key]]
+            fixedOffset = hex(int(fixed) * 8)
         except KeyError:
             fixed = None
+            fixedOffset = None
 
-        matches.append(str((addr, offset, key, aNoVer[key], fixed)))
+        matches.append(str((addr, aNoVer[key], offset, fixedOffset)))
 print("\n".join(matches))
 

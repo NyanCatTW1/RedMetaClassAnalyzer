@@ -54,7 +54,7 @@ for func in funcManager.getFunctions(True):
             ptrs[i] = ptrType
             funcNames[i] = fullName
 
-assert all([done[i] or funcNames[i] is None for i in range(len(funcNames))])
+assert all(done[i] or funcNames[i] is None for i in range(len(funcNames)))
 
 serviceCallback = getDataType("_MCIL_SERVICE_CALLBACKS", typeManager)
 for i in range(len(funcNames)):
