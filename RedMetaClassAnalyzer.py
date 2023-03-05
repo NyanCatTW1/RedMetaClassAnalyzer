@@ -48,7 +48,7 @@ from ghidra.program.model.listing.Function import FunctionUpdateType
 
 verbose = False
 # If importVtables is not empty, then *only* meta classes in the list will have their vtable processed
-importVtables = ["AMDRadeonX6000_AmdAgdcServices"]
+importVtables = []
 overrideMetaStructs = False
 
 
