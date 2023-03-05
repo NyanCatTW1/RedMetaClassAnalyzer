@@ -48,7 +48,7 @@ from ghidra.program.model.listing.Function import FunctionUpdateType
 
 verbose = False
 # If importVtables is not empty, then *only* meta classes in the list will have their vtable processed
-importVtables = []
+importVtables = ["AMDRadeonX6000_AmdAgdcServices"]
 overrideMetaStructs = False
 
 
@@ -138,9 +138,12 @@ def strToFunc(funcStr):
 
     parameters = []
     for paraStr in paraStrs:
-        typeName, paraName = paraStr.split(" ")
-        paraType = ensureDataType(typeName.replace("*", ""), typeManager, typeName.count("*"), None)
-        parameters.append(ParameterDefinitionImpl(paraName, paraType, ""))
+        try:
+            typeName, paraName = paraStr.split(" ")
+            paraType = ensureDataType(typeName.replace("*", ""), typeManager, typeName.count("*"), None)
+            parameters.append(ParameterDefinitionImpl(paraName, paraType, ""))
+        except Exception:
+            pass
     funcType.setArguments(parameters)
 
     return funcType
