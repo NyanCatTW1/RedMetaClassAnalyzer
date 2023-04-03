@@ -46,10 +46,17 @@ from ghidra.program.model.data import GenericCallingConvention, ParameterDefinit
 from ghidra.program.model.listing import ParameterImpl
 from ghidra.program.model.listing.Function import FunctionUpdateType
 
+# Used for handling getAddress failure
+from ghidra.program.model.address import AddressFormatException
+
 verbose = False
 # If importVtables is not empty, then *only* meta classes in the list will have their vtable processed
 importVtables = []
 overrideMetaStructs = False
+# Computed by comparing the address of the actual function to the pointer in the vtable
+# The first function in the vtable is always one of the destructors
+# dyldOffset = 0x7dff20000000
+dyldOffset = 0
 
 
 def makeByteArr(length):
@@ -70,7 +77,11 @@ def getCommentAtPtr(ptr, ptrSize=8, commentType=3):
 
 
 # https://github.com/HackOvert/GhidraSnippets
-def getAddress(offset):
+def getAddress(offset, applyDyldOffset=False):
+    if applyDyldOffset:
+        offset = int(offset, 16) + dyldOffset
+        offset = hex(offset)[2:].replace("L", "")
+
     return currentProgram.getAddressFactory().getDefaultAddressSpace().getAddress(offset)
 
 
@@ -409,9 +420,17 @@ for i in range(len(metaDataTypes)):
             continue
         results = ifc.decompileFunction(func, 0, monitor)
         code = results.getDecompiledFunction().getC().split('\n')
-        matches = [line for line in code if line.strip().startswith("this->vtable = ") and "{}_".format(name) in line]
+        matches = [line for line in code if line.strip().startswith("this->vtable = ")]
         if len(matches) != 0:
-            extractedAddr = getAddress(matches[0].split("_")[-1].replace(";", ""))
+            line = matches[0]
+            if "{}_".format(name) in line:
+                extractedAddr = getAddress(line.split("_")[-1].replace(";", ""))
+            elif "DAT_" in line:
+                extractedAddr = getAddress(line.split("DAT_")[-1].replace(";", ""))
+            else:
+                print("Failed to find extractedAddr!")
+                print(line)
+
             if vtableAddr is None:
                 vtableAddr = extractedAddr
             else:
@@ -430,8 +449,11 @@ for i in range(len(metaDataTypes)):
             vtableDB[name] = {}
 
         while True:
-            ptrAddr = getAddress(readMem(addr, 8))
-            if ptrAddr.getOffset() == 0:
+            try:
+                ptrAddr = getAddress(readMem(addr, 8), applyDyldOffset=True)
+                if ptrAddr.getOffset() == 0:
+                    break
+            except AddressFormatException:
                 break
 
             func = funcManager.getFunctionContaining(ptrAddr)
@@ -475,6 +497,9 @@ for i in range(len(metaDataTypes)):
 
             addr = addr.add(8)
             i += 1
+
+            if len(symbolTable.getSymbols(addr)) != 0:
+                break
         vtableDB[name]["length"] = max(vtableDB[name].get("length", 0), len(vtable))
         vtable["length"] = vtableDB[name]["length"]
 
