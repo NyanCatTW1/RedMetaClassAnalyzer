@@ -112,8 +112,10 @@ def ensureDataType(typeName, typeManager, ptrLevel, forceStructSize):
 
         if ptrLevel == 0 and forceStructSize is not None and ret.getLength() != forceStructSize:
             if verbose:
-                print("    Resizing {}/{} from {} bytes to {} bytes".format(ret.getCategoryPath(), ret.getName(), ret.getLength(), forceStructSize))
-            ret.replaceWith(StructureDataType(ret.getCategoryPath(), ret.getName(), forceStructSize))
+                print("    Resizing {}/{} from {} bytes to {} bytes".format(
+                    ret.getCategoryPath(), ret.getName(), ret.getLength(), forceStructSize))
+            ret.replaceWith(StructureDataType(
+                ret.getCategoryPath(), ret.getName(), forceStructSize))
         return ret
 
     # Create our own data type
@@ -121,11 +123,14 @@ def ensureDataType(typeName, typeManager, ptrLevel, forceStructSize):
         targetLen = forceStructSize if forceStructSize is not None else 0
         if verbose:
             print("Creating {}-bytes struct data type {}".format(targetLen, typeName))
-        ret = StructureDataType(CategoryPath("/AMDGen/Structs"), typeName, targetLen, typeManager)
+        ret = StructureDataType(CategoryPath(
+            "/AMDGen/Structs"), typeName, targetLen, typeManager)
     else:
-        prevType = ensureDataType(typeName, typeManager, ptrLevel - 1, forceStructSize)
+        prevType = ensureDataType(
+            typeName, typeManager, ptrLevel - 1, forceStructSize)
         if verbose:
-            print("Creating pointer data type " + makePtrTypeName(typeName, ptrLevel))
+            print("Creating pointer data type " +
+                  makePtrTypeName(typeName, ptrLevel))
         ret = PointerDataType(prevType, typeManager)
     ret = typeManager.addDataType(ret, DataTypeConflictHandler.REPLACE_HANDLER)
 
@@ -134,13 +139,15 @@ def ensureDataType(typeName, typeManager, ptrLevel, forceStructSize):
 
 def strToFunc(funcStr, suffix=""):
     funcName = funcStr.split("(")[0].split(" ")[-1]
-    funcType = FunctionDefinitionDataType(CategoryPath("/AMDGen/FuncSigns"), funcName + "_sign" + suffix)
+    funcType = FunctionDefinitionDataType(CategoryPath(
+        "/AMDGen/FuncSigns"), funcName + "_sign" + suffix)
 
     callType = funcStr.split(" ")[0]
     funcType.setGenericCallingConvention(callTypes[callType])
 
     retType = funcStr.split(" ")[1]
-    funcType.setReturnType(ensureDataType(retType.replace("*", ""), typeManager, retType.count("*"), None))
+    funcType.setReturnType(ensureDataType(retType.replace(
+        "*", ""), typeManager, retType.count("*"), None))
 
     paraStrs = funcStr.split("(")[1].split(")")[0].split(", ")
     if (paraStrs[0] == "void"):
@@ -150,7 +157,8 @@ def strToFunc(funcStr, suffix=""):
     for paraStr in paraStrs:
         try:
             typeName, paraName = paraStr.split(" ")
-            paraType = ensureDataType(typeName.replace("*", ""), typeManager, typeName.count("*"), None)
+            paraType = ensureDataType(typeName.replace(
+                "*", ""), typeManager, typeName.count("*"), None)
             parameters.append(ParameterDefinitionImpl(paraName, paraType, ""))
         except Exception:
             pass
@@ -182,8 +190,10 @@ def askVtablePreference(title, dbStr, progStr):
     if classVtablePreference is not None:
         return classVtablePreference
 
-    modes = ["Prog and update DB", "Prog but don't update DB", "DB and update Prog"]
-    optionTemplates = ["Always use {}", "Use {} in this meta class", "Use {} just for this conflict"]
+    modes = ["Prog and update DB",
+             "Prog but don't update DB", "DB and update Prog"]
+    optionTemplates = [
+        "Always use {}", "Use {} in this meta class", "Use {} just for this conflict"]
 
     options = []
     for mode in modes:
@@ -294,16 +304,19 @@ else:
                 continue
 
             funcName = [x for x in code if "::" in x][0][3:-3]
-            castRefs = [x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
+            castRefs = [
+                x for x in code if "OSMetaClassBase::safeMetaCast(" in x]
             for castRef in castRefs:
                 try:
                     parts = castRef.strip().split(" = ")
-                    assert len(parts) == 2 and not any(x in parts[0] for x in "()&! ")
+                    assert len(parts) == 2 and not any(
+                        x in parts[0] for x in "()&! ")
                     varName = parts[0]
                     try:
-                        className = parts[1].split("safeMetaCast(")[-1].split(")")[-2].strip()
+                        className = parts[1].split(
+                            "safeMetaCast(")[-1].split(")")[-2].strip()
                     except IndexError:
-                        raise AssertionError
+                        assert False
 
                     if className.endswith("__metaClass"):
                         className = className[:-len("__metaClass")]
@@ -313,22 +326,25 @@ else:
                         # Class of "this"
                         className = funcName.split("::")[0]
                     else:
-                        raise AssertionError
+                        assert False
 
                     metaTypeNames.add(className)
 
                     try:
-                        varSymbol = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()[str(varName)]
+                        varSymbol = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()[
+                            str(varName)]
                     except KeyError:
-                        raise AssertionError
+                        assert False
                     dataType = ensureDataType(className, typeManager, 1, None)
 
                     if varSymbol.getDataType() != dataType:
                         if verbose:
-                            print("    Retyping {} from {} to {} in {}".format(varName, varSymbol.getDataType().getName(), makePtrTypeName(className, 1), funcName))
+                            print("    Retyping {} from {} to {} in {}".format(
+                                varName, varSymbol.getDataType().getName(), makePtrTypeName(className, 1), funcName))
                         retypeCount += 1
                         # Here goes nothing...
-                        HighFunctionDBUtil.updateDBVariable(varSymbol, None, dataType, SourceType.ANALYSIS)
+                        HighFunctionDBUtil.updateDBVariable(
+                            varSymbol, None, dataType, SourceType.ANALYSIS)
                 except AssertionError:
                     pass
                     # print("Warning: Error processing code")
@@ -393,29 +409,28 @@ for i in range(len(metaDataTypes)):
 
     # Find vtable address
     vtableAddr = None
-    for func in funcManager.getFunctions(True):
-        if name != func.getName():
-            continue
-        results = ifc.decompileFunction(func, 0, monitor)
-        code = results.getDecompiledFunction().getC().split('\n')
-        matches = [line for line in code if line.strip().startswith("this->vtable = ")]
-        if len(matches) != 0:
-            line = matches[0]
-            if "{}_".format(name) in line:
-                extractedAddr = getAddress(line.split("_")[-1].replace(";", ""))
-            elif "DAT_" in line:
-                extractedAddr = getAddress(line.split("DAT_")[-1].replace(";", ""))
-            else:
-                print("Failed to find extractedAddr!")
-                print(line)
+    func = next((v for v in funcManager.getFunctions(
+        True) if name == v.getName()), None)
+    if func is not None:
+        try:
+            results = ifc.decompileFunction(func, 0, monitor)
+            code = results.getDecompiledFunction().getC().splitlines()
+            matches = [v for v in code if "this->vtable = " in v]
+            if len(matches) != 0:
+                arg = matches[0].split(")")[-1].strip().replace("&", "")
+                valid = arg.startswith("DAT_") or arg.startswith(
+                    "PTR_") or arg.startswith(name + "_")
+                extractedAddr = getAddress(
+                    arg.split("_")[-1][:-1].replace(";", "")) if valid else None
 
-            if vtableAddr is None:
-                vtableAddr = extractedAddr
-            else:
-                if vtableAddr != extractedAddr:
+                if vtableAddr is None:
+                    vtableAddr = extractedAddr
+                elif vtableAddr != extractedAddr:
                     print("    Error: Conflicting vtable addresses for {}".format(name))
                     print(vtableAddr, code)
-                    raise AssertionError
+                    assert False
+        except AttributeError:
+            pass
 
     if vtableAddr is not None:
         # Analyze vtable
@@ -442,8 +457,10 @@ for i in range(len(metaDataTypes)):
                 funcStr = funcToStr(func)
                 funcSign = func.getSignature(False)
                 if vtableDB[name].get(DBIndex(i), funcStr) != funcStr:
-                    title = "Merge conflict on {} field_{}".format(name, DBIndex(i))
-                    prefer = askVtablePreference(title, vtableDB[name][DBIndex(i)], funcStr)
+                    title = "Merge conflict on {} field_{}".format(
+                        name, DBIndex(i))
+                    prefer = askVtablePreference(
+                        title, vtableDB[name][DBIndex(i)], funcStr)
                     print("        About to use {}".format(prefer))
 
                     if prefer == "Prog and update DB":
@@ -455,19 +472,23 @@ for i in range(len(metaDataTypes)):
                         funcName = funcStr.split("(")[0].split(" ")[-1]
                         funcSign = strToFunc(funcStr)
                         func.setCallingConvention(funcStr.split(" ")[0])
-                        func.setReturnType(funcSign.getReturnType(), SourceType.ANALYSIS)
+                        func.setReturnType(
+                            funcSign.getReturnType(), SourceType.ANALYSIS)
                         if "::" in funcName:
                             func.setCallFixup(funcName.split("::")[0])
-                        func.setName(funcName.split("::")[-1], SourceType.ANALYSIS)
+                        func.setName(funcName.split("::")
+                                     [-1], SourceType.ANALYSIS)
 
                         # ParameterImpl vs ParameterDefinition smh
                         paras = ArrayList()
                         for para in funcSign.getArguments():
-                            paras.add(ParameterImpl(para.getName(), para.getDataType(), currentProgram))
-                        func.replaceParameters(paras, FunctionUpdateType.DYNAMIC_STORAGE_ALL_PARAMS, True, SourceType.ANALYSIS)
+                            paras.add(ParameterImpl(para.getName(),
+                                      para.getDataType(), currentProgram))
+                        func.replaceParameters(
+                            paras, FunctionUpdateType.DYNAMIC_STORAGE_ALL_PARAMS, True, SourceType.ANALYSIS)
                     else:
                         # If this happens I made a typo lol
-                        raise AssertionError
+                        assert False
                 else:
                     vtableDB[name][DBIndex(i)] = funcStr
                 vtable[i] = funcName
@@ -477,15 +498,18 @@ for i in range(len(metaDataTypes)):
                 occurId = funcOccurances[funcName]
                 funcOccurances[funcName] += 1
 
-                funcType = FunctionDefinitionDataType(CategoryPath("/AMDGen/FuncSigns"), funcName + "_sign_" + str(occurId), funcSign)
-                typeManager.addDataType(funcType, DataTypeConflictHandler.REPLACE_HANDLER)
+                funcType = FunctionDefinitionDataType(CategoryPath(
+                    "/AMDGen/FuncSigns"), funcName + "_sign_" + str(occurId), funcSign)
+                typeManager.addDataType(
+                    funcType, DataTypeConflictHandler.REPLACE_HANDLER)
 
             addr = addr.add(8)
             i += 1
 
             if len(symbolTable.getSymbols(addr)) != 0:
                 break
-        vtableDB[name]["length"] = max(vtableDB[name].get("length", 0), len(vtable))
+        vtableDB[name]["length"] = max(
+            vtableDB[name].get("length", 0), len(vtable))
         vtable["length"] = vtableDB[name]["length"]
 
     funcOccurances = {}
@@ -503,7 +527,8 @@ for i in range(len(metaDataTypes)):
                 occurId = funcOccurances[funcName]
                 funcOccurances[funcName] += 1
 
-                typeManager.addDataType(strToFunc(funcStr, "_" + str(occurId)), DataTypeConflictHandler.REPLACE_HANDLER)
+                typeManager.addDataType(strToFunc(
+                    funcStr, "_" + str(occurId)), DataTypeConflictHandler.REPLACE_HANDLER)
                 vtable[i] = funcName
         vtable["length"] = max(vtable.get("length", 0), length)
         vtableDB[name]["length"] = vtable["length"]
@@ -512,7 +537,8 @@ for i in range(len(metaDataTypes)):
         print("    Warning: Failed to find vtable for {}".format(name))
         continue
 
-    print("    Creating {}_vtableStruct with {} entries...".format(name, vtable["length"]))
+    print("    Creating {}_vtableStruct with {} entries...".format(
+        name, vtable["length"]))
     vtableStruct = ensureDataType(name + "_vtableStruct", typeManager, 0, 0)
     vtableStruct.deleteAll()
     funcOccurances = {}
@@ -521,27 +547,36 @@ for i in range(len(metaDataTypes)):
         funcName = vtable.get(i)
         if funcName is None:
             funcName = "field_" + str(i).zfill(3)
-            vtableStruct.add(ulongPtr, 8, funcName, "Generated by RedMetaClassAnalyzer.py")
+            vtableStruct.add(ulongPtr, 8, funcName,
+                             "Generated by RedMetaClassAnalyzer.py")
         else:
             if funcName not in funcOccurances:
                 funcOccurances[funcName] = 0
             occurId = funcOccurances[funcName]
             funcOccurances[funcName] += 1
 
-            signPtr = ensureDataType(funcName + "_sign_" + str(occurId), typeManager, 1, None)
-            vtableStruct.add(signPtr, 8, funcName, "Generated by RedMetaClassAnalyzer.py")
+            signPtr = ensureDataType(
+                funcName + "_sign_" + str(occurId), typeManager, 1, None)
+            vtableStruct.add(signPtr, 8, funcName,
+                             "Generated by RedMetaClassAnalyzer.py")
     # Ensure the DataType in typeManager is updated
-    typeManager.addDataType(vtableStruct, DataTypeConflictHandler.REPLACE_HANDLER)
+    typeManager.addDataType(
+        vtableStruct, DataTypeConflictHandler.REPLACE_HANDLER)
 
-    vtableStructPtr = ensureDataType(name + "_vtableStruct", typeManager, 1, None)
+    vtableStructPtr = ensureDataType(
+        name + "_vtableStruct", typeManager, 1, None)
     if dataType.isZeroLength():
-        dataType.add(vtableStructPtr, 8, "vtable", "Generated by RedMetaClassAnalyzer.py")
+        dataType.add(vtableStructPtr, 8, "vtable",
+                     "Generated by RedMetaClassAnalyzer.py")
         # Ensure the DataType in typeManager is updated
-        typeManager.addDataType(dataType, DataTypeConflictHandler.REPLACE_HANDLER)
+        typeManager.addDataType(
+            dataType, DataTypeConflictHandler.REPLACE_HANDLER)
     elif dataType.getComponentContaining(0) is None or dataType.getComponentContaining(0).getFieldName() != "0":
-        dataType.replaceAtOffset(0, vtableStructPtr, 8, "vtable", "Generated by RedMetaClassAnalyzer.py")
+        dataType.replaceAtOffset(
+            0, vtableStructPtr, 8, "vtable", "Generated by RedMetaClassAnalyzer.py")
         # Ensure the DataType in typeManager is updated
-        typeManager.addDataType(dataType, DataTypeConflictHandler.REPLACE_HANDLER)
+        typeManager.addDataType(
+            dataType, DataTypeConflictHandler.REPLACE_HANDLER)
 
 with open("vtableDB.json", "w") as f:
     json.dump(vtableDB, f, sort_keys=True, indent=4)
