@@ -129,8 +129,7 @@ def ensureDataType(typeName, typeManager, ptrLevel, forceStructSize):
         prevType = ensureDataType(
             typeName, typeManager, ptrLevel - 1, forceStructSize)
         if verbose:
-            print("Creating pointer data type " +
-                  makePtrTypeName(typeName, ptrLevel))
+            print("Creating pointer data type " + makePtrTypeName(typeName, ptrLevel))
         ret = PointerDataType(prevType, typeManager)
     ret = typeManager.addDataType(ret, DataTypeConflictHandler.REPLACE_HANDLER)
 
@@ -169,11 +168,11 @@ def strToFunc(funcStr, suffix=""):
 
 def funcToStr(curFunc):
     funcSign = curFunc.getSignature(False)
-    funcStr = invCallTypes[funcSign.getGenericCallingConvention()]
 
-    protoStr = funcSign.getPrototypeString(False)
-    funcStr += " " + protoStr.split(" ")[0]  # Return type
+    funcStr = invCallTypes[funcSign.getGenericCallingConvention()]
+    funcStr += " " + curFunc.getReturnType().getName()  # Return type
     funcStr += " " + str(curFunc)  # Function name
+    protoStr = funcSign.getPrototypeString(False)
     funcStr += "(" + protoStr.split("(")[-1].replace(" *", "*")  # Parameters
     return funcStr
 
@@ -316,7 +315,7 @@ else:
                         className = parts[1].split(
                             "safeMetaCast(")[-1].split(")")[-2].strip()
                     except IndexError:
-                        assert False
+                        raise AssertionError
 
                     if className.endswith("__metaClass"):
                         className = className[:-len("__metaClass")]
@@ -326,7 +325,7 @@ else:
                         # Class of "this"
                         className = funcName.split("::")[0]
                     else:
-                        assert False
+                        raise AssertionError
 
                     metaTypeNames.add(className)
 
@@ -334,7 +333,7 @@ else:
                         varSymbol = results.getHighFunction().getLocalSymbolMap().getNameToSymbolMap()[
                             str(varName)]
                     except KeyError:
-                        assert False
+                        raise AssertionError
                     dataType = ensureDataType(className, typeManager, 1, None)
 
                     if varSymbol.getDataType() != dataType:
@@ -390,7 +389,11 @@ callTypes = {
 invCallTypes = {v: k for k, v in callTypes.items()}
 invCallTypes[GenericCallingConvention.unknown] = "__stdcall"
 
-vtableDB = json.load(open("vtableDB.json"))
+try:
+    vtableDB = json.load(open("vtableDB.json"))
+except Exception:
+    print("Warning: Failed to load vtableDB.json!")
+    vtableDB = {}
 
 print("")
 print("Creating and assigning vtable structs...")
@@ -415,9 +418,9 @@ for i in range(len(metaDataTypes)):
         try:
             results = ifc.decompileFunction(func, 0, monitor)
             code = results.getDecompiledFunction().getC().splitlines()
-            matches = [v for v in code if "this->vtable = " in v]
+            matches = [v for v in code if "this->vtable = " in v or "this = " in v]
             if len(matches) != 0:
-                arg = matches[0].split(")")[-1].strip().replace("&", "")
+                arg = matches[0].split(" ")[-1].split(")")[-1].replace("&", "").strip()
                 valid = arg.startswith("DAT_") or arg.startswith(
                     "PTR_") or arg.startswith(name + "_")
                 extractedAddr = getAddress(
@@ -428,7 +431,7 @@ for i in range(len(metaDataTypes)):
                 elif vtableAddr != extractedAddr:
                     print("    Error: Conflicting vtable addresses for {}".format(name))
                     print(vtableAddr, code)
-                    assert False
+                    raise AssertionError
         except AttributeError:
             pass
 
@@ -488,7 +491,7 @@ for i in range(len(metaDataTypes)):
                             paras, FunctionUpdateType.DYNAMIC_STORAGE_ALL_PARAMS, True, SourceType.ANALYSIS)
                     else:
                         # If this happens I made a typo lol
-                        assert False
+                        raise AssertionError
                 else:
                     vtableDB[name][DBIndex(i)] = funcStr
                 vtable[i] = funcName
