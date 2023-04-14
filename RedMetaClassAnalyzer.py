@@ -56,6 +56,9 @@ importVtables = []
 # The first function in the vtable is always one of the destructors
 # dyldOffset = 0x7dff20000000
 dyldOffset = 0
+# When set to True, discover the return type of functions by decompiling them
+# Warning: It's slow and may take more than 10 minutes on large programs.
+discoverReturnType = True
 
 
 def makeByteArr(length):
@@ -456,6 +459,19 @@ for i in range(len(metaDataTypes)):
 
             func = funcManager.getFunctionContaining(ptrAddr)
             if func is not None:
+                if discoverReturnType:
+                    code = ifc.decompileFunction(func, 0, monitor).getDecompiledFunction().getC()
+                    signLine = [x.strip() for x in code.split("\n") if "/*" not in x and len(x.strip()) != 0][0]
+                    retType = " ".join(signLine.split("(")[0].split(" ")[:-1])
+
+                    # Remove call convention annotation, if any
+                    for callConvention in ["MSABI", "syscall", "__thiscall"]:
+                        retType = retType.replace(" {}".format(callConvention), "")
+
+                    retTypeName = retType.replace("*", "").strip()
+                    retTypePtrLevel = retType.count("*")
+                    func.setReturnType(ensureDataType(retTypeName, typeManager, retTypePtrLevel, None), SourceType.ANALYSIS)
+
                 funcName = str(func)
                 funcStr = funcToStr(func)
                 funcSign = func.getSignature(False)
@@ -509,7 +525,10 @@ for i in range(len(metaDataTypes)):
             addr = addr.add(8)
             i += 1
 
-            if len(symbolTable.getSymbols(addr)) != 0:
+            if discoverReturnType and i % 100 == 0:
+                print("    Processed {} functions".format(i))
+
+            if dyldOffset != 0 and len(symbolTable.getSymbols(addr)) != 0:
                 break
         vtableDB[name]["length"] = max(
             vtableDB[name].get("length", 0), len(vtable))
