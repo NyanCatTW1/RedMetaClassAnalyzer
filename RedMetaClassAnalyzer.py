@@ -460,17 +460,20 @@ for i in range(len(metaDataTypes)):
             func = funcManager.getFunctionContaining(ptrAddr)
             if func is not None:
                 if discoverReturnType:
-                    code = ifc.decompileFunction(func, 0, monitor).getDecompiledFunction().getC()
-                    signLine = [x.strip() for x in code.split("\n") if "/*" not in x and len(x.strip()) != 0][0]
-                    retType = " ".join(signLine.split("(")[0].split(" ")[:-1])
+                    try:
+                        code = ifc.decompileFunction(func, 0, monitor).getDecompiledFunction().getC()
+                        signLine = [x.strip() for x in code.split("\n") if "/*" not in x and len(x.strip()) != 0][0]
+                        retType = " ".join(signLine.split("(")[0].split(" ")[:-1])
 
-                    # Remove call convention annotation, if any
-                    for callConvention in ["MSABI", "syscall", "__thiscall"]:
-                        retType = retType.replace(" {}".format(callConvention), "")
+                        # Remove call convention annotation, if any
+                        for callConvention in ["MSABI", "syscall", "__thiscall"]:
+                            retType = retType.replace(" {}".format(callConvention), "")
 
-                    retTypeName = retType.replace("*", "").strip()
-                    retTypePtrLevel = retType.count("*")
-                    func.setReturnType(ensureDataType(retTypeName, typeManager, retTypePtrLevel, None), SourceType.ANALYSIS)
+                        retTypeName = retType.replace("*", "").strip()
+                        retTypePtrLevel = retType.count("*")
+                        func.setReturnType(ensureDataType(retTypeName, typeManager, retTypePtrLevel, None), SourceType.ANALYSIS)
+                    except Exception:
+                        print("    Warning: Failed to discover return type of " + str(func))
 
                 funcName = str(func)
                 funcStr = funcToStr(func)
