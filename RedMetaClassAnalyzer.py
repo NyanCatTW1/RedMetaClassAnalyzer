@@ -172,7 +172,7 @@ def strToFunc(funcStr, suffix=""):
 def funcToStr(curFunc):
     funcSign = curFunc.getSignature(False)
 
-    funcStr = invCallTypes[funcSign.getGenericCallingConvention()]
+    funcStr = funcSign.getCallingConventionName()
     funcStr += " " + curFunc.getReturnType().getName()  # Return type
     funcStr += " " + str(curFunc)  # Function name
     protoStr = funcSign.getPrototypeString(False)
@@ -387,10 +387,6 @@ callTypes = {
     "__thiscall": GenericCallingConvention.thiscall,
     "__vectorcall": GenericCallingConvention.vectorcall
 }
-
-# https://stackoverflow.com/questions/2568673/inverse-dictionary-lookup-in-python
-invCallTypes = {v: k for k, v in callTypes.items()}
-invCallTypes[GenericCallingConvention.unknown] = "__stdcall"
 
 try:
     vtableDB = json.load(open("vtableDB.json"))
