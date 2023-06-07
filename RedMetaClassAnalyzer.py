@@ -145,7 +145,7 @@ def strToFunc(funcStr, suffix=""):
         "/AMDGen/FuncSigns"), funcName + "_sign" + suffix)
 
     callType = funcStr.split(" ")[0]
-    funcType.setGenericCallingConvention(callTypes[callType])
+    funcType.setGenericCallingConvention(callTypes.get(callType, GenericCallingConvention.stdcall))
 
     retType = funcStr.split(" ")[1]
     funcType.setReturnType(ensureDataType(retType.replace(
